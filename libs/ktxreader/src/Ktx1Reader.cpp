@@ -83,9 +83,11 @@ Texture* createTexture(Engine* engine, const Ktx1Bundle& ktx, bool srgb,
 
     auto texformat = toTextureFormat(ktxinfo);
     if (srgb && !isSrgbTextureFormat(texformat)) {
-        utils::slog.w << "Requested sRGB format but KTX contains a linear format. ";
+        utils::slog.w << "Requested sRGB format but KTX contains a linear format. "
+            << utils::io::endl;
     } else if (!srgb && isSrgbTextureFormat(texformat)) {
-        utils::slog.w << "Requested linear format but KTX contains a sRGB format. ";
+        utils::slog.w << "Requested linear format but KTX contains a sRGB format. "
+            << utils::io::endl;
     }
 
     Texture* texture = Texture::Builder()

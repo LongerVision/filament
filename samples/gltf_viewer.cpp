@@ -86,6 +86,7 @@ struct App {
 
     gltfio::ResourceLoader* resourceLoader = nullptr;
     gltfio::TextureProvider* decoder = nullptr;
+    gltfio::TextureProvider* ktx2decoder = nullptr;
     bool recomputeAabb = false;
     bool ignoreBindTransform = false;
 
@@ -426,8 +427,10 @@ int main(int argc, char** argv) {
         if (!app.resourceLoader) {
             app.resourceLoader = new gltfio::ResourceLoader(configuration);
             app.decoder = createStbProvider(app.engine);
+            app.ktx2decoder = createKtx2Provider(app.engine);
             app.resourceLoader->addTextureProvider("image/png", app.decoder);
             app.resourceLoader->addTextureProvider("image/jpeg", app.decoder);
+            app.resourceLoader->addTextureProvider("image/ktx2", app.ktx2decoder);
         }
         app.resourceLoader->asyncBeginLoad(app.asset);
         app.asset->releaseSourceData();
@@ -651,6 +654,7 @@ int main(int argc, char** argv) {
         delete app.materials;
         delete app.names;
         delete app.decoder;
+        delete app.ktx2decoder;
 
         AssetLoader::destroy(&app.assetLoader);
     };

@@ -178,6 +178,7 @@ steps:
   - [x] KHR_materials_volume
   - [x] KHR_mesh_quantization
   - [x] KHR_texture_transform
+  - [x] KHR_texture_basisu
 
 
 ## Rendering with Filament
