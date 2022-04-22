@@ -80,6 +80,7 @@ const float kSensitivity = 100.0f;
 
     Manipulator<float>* _manipulator;
     TextureProvider* _decoder;
+    TextureProvider* _ktx2decoder;
 
     FilamentAsset* _asset;
 
@@ -132,8 +133,10 @@ const float kSensitivity = 100.0f;
     _resourceLoader = new ResourceLoader(
             {.engine = _engine, .normalizeSkinningWeights = true, .recomputeBoundingBoxes = false});
     _decoder = createStbProvider(_engine);
+    _ktx2decoder = createKtx2Provider(_engine);
     _resourceLoader->addTextureProvider("image/png", _decoder);
     _resourceLoader->addTextureProvider("image/jpeg", _decoder);
+    _resourceLoader->addTextureProvider("image/ktx2", _ktx2decoder);
 
     _manipulator =
             Manipulator<float>::Builder().orbitHomePosition(0.0f, 0.0f, 4.0f).build(Mode::ORBIT);
@@ -253,6 +256,7 @@ const float kSensitivity = 100.0f;
 
     delete _manipulator;
     delete _decoder;
+    delete _ktx2decoder;
 
     _materialProvider->destroyMaterials();
     delete _materialProvider;

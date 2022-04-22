@@ -40,6 +40,13 @@ class Ktx2Reader {
         using Texture = filament::Texture;
         enum class TransferFunction { LINEAR, sRGB };
 
+        enum class Result {
+            SUCCESS,
+            UNSPECIFIED_FAILURE,
+            FORMAT_UNSUPPORTED,
+            FORMAT_ALREADY_REQUESTED,
+        };
+
         Ktx2Reader(Engine& engine, bool quiet = false);
         ~Ktx2Reader();
 
@@ -55,13 +62,13 @@ class Ktx2Reader {
          * considered higher priority.
          *
          * If BasisU knows a priori that the given format is not available (e.g. if the build has
-         * disabled it), this returns false and the format is not added to the list.
+         * disabled it), the format is not added and FORMAT_ALREADY_REQUESTED is returned.
          *
-         * Returns false if the given format has already been requested.
+         * Returns FORMAT_ALREADY_REQUESTED if the given format has already been requested.
          *
          * Hint: BasisU supports the following uncompressed formats: RGBA8, RGB565, RGBA4.
          */
-        bool requestFormat(Texture::InternalFormat format);
+        Result requestFormat(Texture::InternalFormat format);
 
         /**
          * Removes the given format from the list, or does nothing if it hasn't been requested.
@@ -85,16 +92,85 @@ class Ktx2Reader {
          */
         Texture* load(const uint8_t* data, size_t size, TransferFunction transfer);
 
+        /**
+         * Asynchronous Interface
+         * ======================
+         *
+         * Alternative API suitable for asynchronous transcoding of mipmap levels.
+         * If unsure that you need to use this, then don't, just call load() instead.
+         * Usage pseudocode:
+         *
+         *    auto async = reader->asyncCreate(data, size, TransferFunction::LINEAR);
+         *    mTexture = async->getTexture();
+         *    auto backgroundThread = spawnThread({ async->doTranscoding(); })
+         *    backgroundThread.wait();
+         *    async->uploadImages();
+         *    reader->asyncDestroy(async);
+         *
+         * In the documentation comments, "foreground thread" refers to the thread that the
+         * Filament Engine was created on.
+         */
+        class Async {
+        public:
+            /**
+             * Retrieves the Texture object.
+             *
+             * The texture is available immediately, but does not have its miplevels ready until
+             * after uploadImages(). The caller has ownership over this texture and is responsible
+             * for freeing it.
+             */
+            virtual Texture* getTexture() const = 0;
+
+            /**
+             * Loads mipmaps from the KTX2 file and transcodes them to the resolved format.
+             *
+             * This is typically called from a background thread.
+             */
+            virtual Result doTranscoding() = 0;
+
+            /**
+             * Uploads all mipmaps to the texture.
+             *
+             * This calls Texture::setImage() and potentially generates missing mipmaps.
+             * If transcoding has not yet completed, returns INCOMPLETE.
+             *
+             * NOTE: This can be called only from the foreground thread.
+             */
+            virtual void uploadImages() = 0;
+
+        protected:
+            virtual ~Async() = default;
+            friend class Ktx2Reader;
+        };
+
+        /**
+         * Creates a texture synchronously, but does not perform transcoding.
+         *
+         * The reader creates a copy of the given buffer so it can be freed immediately.
+         * Callable from the foreground thread. If an error occurs, this returns null.
+         * See load() documentation for additional details.
+         */
+        Async* asyncCreate(const uint8_t* data, size_t size, TransferFunction transfer);
+
+        /**
+         * Frees the given async object if it is non-null. (does not free the associated Texture)
+         *
+         * Callable from the foreground thread and assumes transcoding is not underway.
+         */
+        void asyncDestroy(Async* async);
+
     private:
         Ktx2Reader(const Ktx2Reader&) = delete;
         Ktx2Reader& operator=(const Ktx2Reader&) = delete;
         Ktx2Reader(Ktx2Reader&& that) noexcept = delete;
         Ktx2Reader& operator=(Ktx2Reader&& that) noexcept = delete;
 
+        Texture* createTexture(basist::ktx2_transcoder* transcoder, const uint8_t* data,
+                size_t size, TransferFunction transfer);
+
         Engine& mEngine;
         bool mQuiet;
-        basist::ktx2_transcoder* const mTranscoder;
-
+        std::unique_ptr<basist::ktx2_transcoder> const mTranscoder;
         utils::FixedCapacityVector<Texture::InternalFormat> mRequestedFormats;
 };
 

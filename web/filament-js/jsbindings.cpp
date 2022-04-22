@@ -1910,6 +1910,11 @@ class_<StbProvider>("gltfio$StbProvider")
         return StbProvider { createStbProvider(engine) };
     }));
 
+class_<Ktx2Provider>("gltfio$Ktx2Provider")
+    .constructor(EMBIND_LAMBDA(Ktx2Provider, (Engine* engine), {
+        return Ktx2Provider { createKtx2Provider(engine) };
+    }));
+
 class_<AssetLoader>("gltfio$AssetLoader")
 
     .constructor(EMBIND_LAMBDA(AssetLoader*, (Engine* engine, UbershaderLoader materials), {
@@ -1971,8 +1976,13 @@ class_<ResourceLoader>("gltfio$ResourceLoader")
         self->addResourceData(url.c_str(), std::move(*buffer.bd));
     }), allow_raw_pointers())
 
-    .function("addTextureProvider", EMBIND_LAMBDA(void, (ResourceLoader* self, std::string mime,
+    .function("addStbProvider", EMBIND_LAMBDA(void, (ResourceLoader* self, std::string mime,
             StbProvider provider), {
+        self->addTextureProvider(mime.c_str(), provider.provider);
+    }), allow_raw_pointers())
+
+    .function("addKtx2Provider", EMBIND_LAMBDA(void, (ResourceLoader* self, std::string mime,
+            Ktx2Provider provider), {
         self->addTextureProvider(mime.c_str(), provider.provider);
     }), allow_raw_pointers())
 
