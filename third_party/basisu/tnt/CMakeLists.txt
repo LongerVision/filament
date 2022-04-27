@@ -42,7 +42,7 @@ set (BASIS_CONFIG
 
 # The following BasisU setting is useful when diagnosing issues, but we're leaving it turned off
 # even for debug builds, since it is quite verbose.
-# set (BASIS_CONFIG ${BASIS_CONFIG} $<$<CONFIG:Debug>:BASISU_FORCE_DEVEL_MESSAGES=1>)
+set (BASIS_CONFIG ${BASIS_CONFIG} $<$<CONFIG:Debug>:BASISU_FORCE_DEVEL_MESSAGES=1>)
 
 # DXT5A and DXT1 are both required for cTFBC3_RGBA aka DXT3_RGBA.
 if (NOT IS_MOBILE_TARGET)

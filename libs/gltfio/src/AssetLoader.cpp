@@ -1325,7 +1325,7 @@ void FAssetLoader::addTextureBinding(MaterialInstance* materialInstance, const c
         // we might as well use them. In practice the conformance models look awful without
         // using mipmapping by default.
         dstSampler.setMagFilter(TextureSampler::MagFilter::LINEAR);
-        dstSampler.setMinFilter(TextureSampler::MinFilter::LINEAR_MIPMAP_LINEAR);
+        dstSampler.setMinFilter(TextureSampler::MinFilter::LINEAR);
     }
 
     mResult->mTextureSlots.push_back({

@@ -258,12 +258,29 @@ Result AsyncImpl::doTranscoding() {
     const uint32_t faceIndex = 0;
     for (uint32_t levelIndex = 0; levelIndex < mTranscoder->get_levels(); levelIndex++) {
         assert_invariant(levelIndex < KTX2_MAX_SUPPORTED_LEVEL_COUNT);
-        basist::ktx2_image_level_info levelInfo;
+        basist::ktx2_image_level_info levelInfo = {};
         mTranscoder->get_image_level_info(levelInfo, levelIndex, layerIndex, faceIndex);
         if (formatInfo.isCompressed) {
             const uint32_t qwordsPerBlock = basisu::get_qwords_per_block(destFormat);
             const size_t byteCount = sizeof(uint64_t) * qwordsPerBlock * levelInfo.m_total_blocks;
             uint64_t* const blocks = (uint64_t*) malloc(byteCount);
+
+            int width = levelInfo.m_orig_width;
+            int height = levelInfo.m_orig_height;
+			int block_width = basisu::get_block_width(destFormat);
+			int block_height = basisu::get_block_height(destFormat);
+			int blocks_x = (width + block_width - 1) / block_width;
+			int blocks_y = (height + block_height - 1) / block_height;
+			int qwords_per_block = basisu::get_qwords_per_block(destFormat);
+            int num_blocks = blocks_x * blocks_y;
+
+            assert(num_blocks == levelInfo.m_total_blocks);
+            assert(byteCount == num_blocks * qwords_per_block * sizeof(uint64_t));
+
+// compressedPixelDataType is DXT3_SRGBA or DXT3_RGBA (16 or 12)
+
+// bug must be here ?
+
             if (!mTranscoder->transcode_image_level(levelIndex, layerIndex, faceIndex, blocks,
                     levelInfo.m_total_blocks, formatInfo.basisFormat, decodeFlags,
                     outputRowPitch, outputRowCount, channel0,
@@ -273,6 +290,9 @@ Result AsyncImpl::doTranscoding() {
             mTranscoderResults[levelIndex].store(new Texture::PixelBufferDescriptor(blocks,
                     byteCount, formatInfo.compressedPixelDataType, byteCount, freeCallback));
         } else {
+
+assert(false);
+
             const uint32_t rowCount = levelInfo.m_orig_height;
             const uint32_t bytesPerPix = basis_get_bytes_per_block_or_pixel(formatInfo.basisFormat);
             const size_t byteCount = bytesPerPix * levelInfo.m_orig_width * rowCount;
@@ -296,7 +316,9 @@ void AsyncImpl::uploadImages() {
         Texture::PixelBufferDescriptor* pbd = level.load();
         if (pbd) {
             level.store(nullptr);
-            mTexture->setImage(mEngine, levelIndex, std::move(*pbd));
+            if (levelIndex == 0) {
+                mTexture->setImage(mEngine, levelIndex, std::move(*pbd));
+            }
             delete pbd;
         }
         ++levelIndex;
