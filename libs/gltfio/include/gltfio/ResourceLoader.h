@@ -23,6 +23,10 @@
 
 #include <utils/compiler.h>
 
+namespace utils {
+    class NameComponentManager;
+}
+
 namespace filament {
     class Engine;
 }
@@ -57,6 +61,9 @@ struct ResourceConfiguration {
     //! If true, ignore skinned primitives bind transform when compute bounding box. Implicitly true 
     //! for instanced asset. Only applicable when recomputeBoundingBoxes is set to true
     bool ignoreBindTransform;
+
+    //! Optional name manager for diagnostics (should match the one in AssetConfiguration)
+    utils::NameComponentManager* names = nullptr;
 };
 
 /**

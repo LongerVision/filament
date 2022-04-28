@@ -424,6 +424,7 @@ int main(int argc, char** argv) {
         configuration.recomputeBoundingBoxes = app.recomputeAabb;
         configuration.ignoreBindTransform = app.ignoreBindTransform;
         configuration.normalizeSkinningWeights = true;
+        configuration.names = app.names;
         if (!app.resourceLoader) {
             app.resourceLoader = new gltfio::ResourceLoader(configuration);
             app.decoder = createStbProvider(app.engine);

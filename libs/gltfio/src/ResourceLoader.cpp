@@ -71,19 +71,20 @@ using UriDataCache = tsl::robin_map<std::string, gltfio::ResourceLoader::BufferD
 using TextureProviderList = tsl::robin_map<std::string, TextureProvider*>;
 
 struct ResourceLoader::Impl {
-    Impl(const ResourceConfiguration& config) {
-        mGltfPath = std::string(config.gltfPath ? config.gltfPath : "");
-        mEngine = config.engine;
-        mNormalizeSkinningWeights = config.normalizeSkinningWeights;
-        mRecomputeBoundingBoxes = config.recomputeBoundingBoxes;
-        mIgnoreBindTransform = config.ignoreBindTransform;
-    }
+    Impl(const ResourceConfiguration& config) :
+        mGltfPath(std::string(config.gltfPath ? config.gltfPath : "")),
+        mEngine(config.engine),
+        mNormalizeSkinningWeights(config.normalizeSkinningWeights),
+        mRecomputeBoundingBoxes(config.recomputeBoundingBoxes),
+        mIgnoreBindTransform(config.ignoreBindTransform),
+        mNameComponentManager(config.names) {}
 
-    Engine* mEngine;
-    bool mNormalizeSkinningWeights;
-    bool mRecomputeBoundingBoxes;
+    const std::string mGltfPath;
+    Engine* const mEngine;
+    const bool mNormalizeSkinningWeights;
+    const bool mRecomputeBoundingBoxes;
     bool mIgnoreBindTransform;
-    std::string mGltfPath;
+    utils::NameComponentManager* const mNameComponentManager;
 
     // This is used to calculate skinIndex when updateBoundingBoxes, so that the mapping between
     // cgltf_node* and FFilamentInstance::Skin can be retrieved. This pointer doesn't need to be freed.
