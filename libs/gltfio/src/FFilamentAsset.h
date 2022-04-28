@@ -119,6 +119,7 @@ struct FFilamentAsset : public FilamentAsset {
             utils::EntityManager* entityManager, const cgltf_data* srcAsset) :
             mEngine(engine), mNameManager(names), mEntityManager(entityManager) {
         mSourceAsset.reset(new SourceAsset {(cgltf_data*)srcAsset});
+        mDependencyGraph.setNameManager(names);
     }
 
     ~FFilamentAsset();

@@ -16,6 +16,13 @@
 
 #include "DependencyGraph.h"
 
+#include <filament/Texture.h>
+
+#include <utils/Log.h>
+#include <utils/NameComponentManager.h>
+
+#include <utils/ostream.h>
+
 using namespace filament;
 using namespace utils;
 
@@ -27,7 +34,21 @@ size_t DependencyGraph::popRenderables(Entity* result, size_t count) noexcept {
     }
     size_t numWritten = 0;
     while (numWritten < count && !mReadyRenderables.empty()) {
-        result[numWritten++] = mReadyRenderables.front();
+        Entity top = mReadyRenderables.front();
+#if !defined(NDEBUG)
+        if (mNames) {
+            if (auto instance = mNames->getInstance(top); instance && mNames->getName(instance)) {
+                slog.i << mNames->getName(instance) << "has become ready." << io::endl;
+            }
+            for (Material* material : mEntityToMaterial.at(top).materials) {
+                for (const auto& param : mMaterialToTexture.at(material).params) {
+                    Texture* texture = param.second->texture;
+                    slog.i << '\t' << param.first.c_str() << " = " <<  texture->getFormat() << io::endl;
+                }
+            }
+        }
+#endif
+        result[numWritten++] = top;
         mReadyRenderables.pop();
     }
     return numWritten;

@@ -25,6 +25,10 @@
 #include <queue>
 #include <string>
 
+namespace utils {
+    class NameComponentManager;
+}
+
 namespace filament {
     class MaterialInstance;
     class Texture;
@@ -98,6 +102,9 @@ public:
     // checks the readiness of existing materials.
     void refinalize();
 
+    // Sets the optional name manager, used for diagnostic purposes only.
+    void setNameManager(utils::NameComponentManager* names) { mNames = names; }
+
 private:
     struct TextureNode {
         filament::Texture* texture;
@@ -130,6 +137,7 @@ private:
 
     std::queue<Entity> mReadyRenderables;
     bool mFinalized = false;
+    utils::NameComponentManager* mNames = nullptr;
 };
 
 } // namespace gltfio
