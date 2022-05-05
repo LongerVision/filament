@@ -866,4 +866,94 @@ TEST_F(BackendTest, Blit2DTextureArray) {
     api.stopCapture(0);
 }
 
+TEST_F(BackendTest, BlitRegion) {
+    auto& api = getDriverApi();
+
+    constexpr int kSrcTexWidth = 1024;
+    constexpr int kSrcTexHeight = 1024;
+    constexpr auto kSrcTexFormat = TextureFormat::RGBA8;
+    constexpr int kDstTexWidth = 384;
+    constexpr int kDstTexHeight = 384;
+    constexpr auto kDstTexFormat = TextureFormat::RGBA8;
+    constexpr int kNumLevels = 3;
+
+    // Create a SwapChain and make it current. We don't really use it so the res doesn't matter.
+    auto swapChain = api.createSwapChainHeadless(256, 256, 0);
+    api.makeCurrent(swapChain, swapChain);
+
+    // Create a source texture.
+    Handle<HwTexture> srcTexture = api.createTexture(
+        SamplerType::SAMPLER_2D, kNumLevels, kSrcTexFormat, 1, kSrcTexWidth, kSrcTexHeight, 1,
+        TextureUsage::SAMPLEABLE | TextureUsage::UPLOADABLE | TextureUsage::COLOR_ATTACHMENT);
+    const bool flipY = sBackend == Backend::OPENGL;
+    createBitmap(api, srcTexture, kSrcTexWidth, kSrcTexHeight, 0, float3(0.5, 0, 0), flipY);
+    createBitmap(api, srcTexture, kSrcTexWidth, kSrcTexHeight, 1, float3(0, 0, 0.5), flipY);
+
+    // Create a destination texture.
+    Handle<HwTexture> dstTexture = api.createTexture(
+        SamplerType::SAMPLER_2D, kNumLevels, kDstTexFormat, 1, kDstTexWidth, kDstTexHeight, 1,
+        TextureUsage::SAMPLEABLE | TextureUsage::COLOR_ATTACHMENT);
+
+    // Create a RenderTarget for each texture's miplevel.
+    Handle<HwRenderTarget> srcRenderTargets[kNumLevels];
+    Handle<HwRenderTarget> dstRenderTargets[kNumLevels];
+    for (uint8_t level = 0; level < kNumLevels; level++) {
+        srcRenderTargets[level] = api.createRenderTarget( TargetBufferFlags::COLOR,
+                kSrcTexWidth >> level, kSrcTexHeight >> level, 1, { srcTexture, level, 0 }, {}, {});
+        dstRenderTargets[level] = api.createRenderTarget( TargetBufferFlags::COLOR,
+                kDstTexWidth >> level, kDstTexHeight >> level, 1, { dstTexture, level, 0 }, {}, {});
+    }
+
+    // Blit one-quarter of level 1 of the source RT to the level 0 of the destination RT, and shift
+    // the destination by one-third.
+    const int srcLevel = 1;
+    Viewport dstRect = {
+        .left = kDstTexWidth / 3,
+        .bottom = kDstTexHeight / 3,
+        .width = kDstTexWidth,
+        .height = kDstTexHeight,
+    };
+
+    Viewport srcRect = {
+        .left = (kSrcTexWidth >> srcLevel) / 2,
+        .bottom = (kSrcTexHeight >> srcLevel) / 2,
+        .width = (kSrcTexWidth >> srcLevel) / 2,
+        .height = (kSrcTexHeight >> srcLevel) / 2,
+    };
+
+    api.blit(TargetBufferFlags::COLOR0, dstRenderTargets[0],
+            dstRect, srcRenderTargets[srcLevel],
+            srcRect, SamplerMagFilter::LINEAR);
+
+    // Push through an empty frame to allow the texture to upload and the blit to execute.
+    api.beginFrame(0, 0);
+    api.commit(swapChain);
+    api.endFrame(0);
+
+    // Grab a screenshot.
+    ScreenshotParams params { kDstTexWidth, kDstTexHeight, "BlitRegion.png" };
+    api.beginFrame(0, 0);
+    dumpScreenshot(api, dstRenderTargets[0], &params);
+    api.commit(swapChain);
+    api.endFrame(0);
+
+    // Wait for the ReadPixels result to come back.
+    api.finish();
+    executeCommands();
+    getDriver().purge();
+
+    // Check if the image matches perfectly to our golden run.
+    const uint32_t expected = 0xc82b265e;
+    printf("Computed hash is 0x%8.8x, Expected 0x%8.8x\n", params.pixelHashResult, expected);
+    EXPECT_TRUE(params.pixelHashResult == expected);
+
+    // Cleanup.
+    api.destroyTexture(srcTexture);
+    api.destroyTexture(dstTexture);
+    api.destroySwapChain(swapChain);
+    for (auto rt : srcRenderTargets)  api.destroyRenderTarget(rt);
+    for (auto rt : dstRenderTargets)  api.destroyRenderTarget(rt);
+    executeCommands();
+}
+
 } // namespace test
